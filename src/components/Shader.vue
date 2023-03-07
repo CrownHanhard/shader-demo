@@ -93,6 +93,11 @@ onMounted(() => {
         },
         false
     );
+    document.addEventListener("keydown", (event) => {
+        if (event.code === "KeyQ") {
+            createFireworks(scene)
+        }
+    })
     document.addEventListener(
         "mousedown",
         (event) => {

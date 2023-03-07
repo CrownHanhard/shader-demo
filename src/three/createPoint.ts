@@ -32,20 +32,16 @@ export default class Fireworks {
       startPositionArray[i * 3 + 2] = from.z;
       // 设置烟花初始大小
       startPointScaleFireworkArray[i + 0] = Math.random();
-      // 设置旋转角度
       let r = 1;
-
-      startPointDirectionArray[i * 3 + 0] = r * from.x * 0.1;
-      startPointDirectionArray[i * 3 + 1] = r * from.y * 0.1;
-      startPointDirectionArray[i * 3 + 2] = r * from.z * 0.1;
+      startPointDirectionArray[i * 3 + 0] = r * to.x * 0.1;
+      startPointDirectionArray[i * 3 + 1] = r * to.y * 0.1;
+      startPointDirectionArray[i * 3 + 2] = r * to.z * 0.1;
     }
 
     this.startGeometry.setAttribute(
       "position",
       new THREE.BufferAttribute(startPositionArray, 3)
     );
-
-    // this.startGeometry.setAttribute('aStep', new THREE.BufferAttribute(astepArray, 3))
     this.startGeometry.setAttribute(
       "aRandom",
       new THREE.BufferAttribute(startPointDirectionArray, 3)
@@ -85,9 +81,9 @@ export default class Fireworks {
     const directionArray = new Float32Array(this.fireworkCount * 3);
     for (let i = 0; i < this.fireworkCount; i++) {
       // 一开始烟花的位置
-      positionFireworksArray[i * 3 + 0] = to.x * 2;
-      positionFireworksArray[i * 3 + 1] = to.y * 2;
-      positionFireworksArray[i * 3 + 2] = to.z * 2;
+      positionFireworksArray[i * 3 + 0] = to.x;
+      positionFireworksArray[i * 3 + 1] = to.y * 1.5;
+      positionFireworksArray[i * 3 + 2] = to.z;
       // 设置烟花初始大小
       scaleFireworkArray[i + 0] = Math.random();
       // 设置旋转角度

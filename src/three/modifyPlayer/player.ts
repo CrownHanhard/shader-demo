@@ -17,28 +17,41 @@ export const keyStates = {
   isDown: false,
 };
 
+const radianAOB = (
+  A: THREE.Vector3,
+  B: THREE.Vector3,
+  O: THREE.Vector3
+): number => {
+  // dir1、dir2：球面上两个点和球心构成的方向向量
+  const dir1 = A.clone().sub(O).normalize();
+  const dir2 = B.clone().sub(O).normalize();
+  //.dot()计算夹角余弦值
+  const cosAngle = dir1.clone().dot(dir2);
+  const radianAngle = Math.acos(cosAngle); //余弦值转夹角弧度值
+  return radianAngle;
+};
 export let fireworks: Fireworks[] = [];
 
 export let createFireworks = (scene: THREE.Scene) => {
   let color = `hsl(${Math.floor(Math.random() * 360)},100%,5%)`;
   // 颜色随机生成 位置
   // 获取相机朝向
-  const capsuleFront = capsule.position;
-  const positionY = playerVelocity.y + 0;
-  capsule.getWorldDirection(capsuleFront);
+  const capsuleFront = capsule.position.clone();
+  const positionY = playerVelocity.clone().y;
+  let toPosition = capsule.getWorldDirection(capsuleFront);
   capsuleFront.multiplyScalar(10);
+
   // 从哪开始？
   let from = new THREE.Vector3(
-    capsule.position.x,
-    positionY + 3,
-    capsule.position.z
+    capsule.position.clone().x,
+    capsule.position.clone().y + 2,
+    capsule.position.clone().z
   );
-  console.log(from, capsule.position);
   // 去哪？
   let to = new THREE.Vector3(
-    capsuleFront.x,
-    Math.abs(playerVelocity.y) + 5,
-    capsuleFront.z
+    toPosition.x,
+    Math.abs(positionY) + capsule.position.clone().y+3,
+    toPosition.z
   );
   let firework = new Fireworks(color, to, from);
   firework.addGroup(group);
@@ -65,7 +78,6 @@ export function controlPlayer(deltaTime: number) {
     //获取胶囊的正前面方向
     const capsuleFront = new THREE.Vector3(0, 0, 0);
     capsule.getWorldDirection(capsuleFront);
-    // console.log(capsuleFront);
     // 计算玩家的速度
     playerVelocity.add(capsuleFront.multiplyScalar(deltaTime));
   }
@@ -74,7 +86,6 @@ export function controlPlayer(deltaTime: number) {
     //获取胶囊的正前面方向
     const capsuleFront = new THREE.Vector3(0, 0, 0);
     capsule.getWorldDirection(capsuleFront);
-    // console.log(capsuleFront);
     // 计算玩家的速度
     playerVelocity.add(capsuleFront.multiplyScalar(-deltaTime));
   }

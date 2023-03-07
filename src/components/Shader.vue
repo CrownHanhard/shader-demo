@@ -31,11 +31,13 @@ import {
 import {
     group,
     keyStates,
-    createFireworks
+    createFireworks,
+    _octreeHelper
 } from '@/three/modifyPlayer/player'
 const sceneDiv: Ref = ref();
 //  相机
 scene.add(camera);
+scene.add(_octreeHelper);
 
 onMounted(() => {
     sceneDiv.value.appendChild(renderer.domElement);

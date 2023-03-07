@@ -6,6 +6,8 @@ import {
   capsule,
 } from "@/three/mesh/meshPlayer";
 import { Octree } from "three/examples/jsm/math/Octree.js";
+import { OctreeHelper } from "three/examples/jsm/helpers/OctreeHelper.js";
+
 import Fireworks from "@/three/createPoint";
 
 export const keyStates = {
@@ -63,7 +65,10 @@ group.add(plane);
 group.add(planeWall);
 // scene.add(group);
 const worldOctree = new Octree();
+
+
 worldOctree.fromGraphNode(group);
+export const _octreeHelper = new OctreeHelper(worldOctree, 0xff0);
 // 设置重力
 const gravity = -9.8;
 // 玩家的速度

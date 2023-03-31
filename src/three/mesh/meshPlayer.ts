@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Capsule } from "three/examples/jsm/math/Capsule.js";
+import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils";
 // 创建一个人的碰撞体
 const playerCollider = new Capsule(
   new THREE.Vector3(0, 0.35, 0),
@@ -7,15 +8,38 @@ const playerCollider = new Capsule(
   0.35
 );
 
-// 创建一个平面
-const planeGeometry = new THREE.PlaneGeometry(20, 20, 1, 1);
+// 创建一个平面纹理 通过合并循环生成总物体
 const planeMaterial = new THREE.MeshBasicMaterial({
   color: 0x000000,
   side: THREE.DoubleSide,
 });
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+
+const geometry = [];
+for (let i = 0; i < 12; i++) {
+  const planeGeometry = new THREE.PlaneGeometry(20, 20, 1, 1);
+  const position = new THREE.Vector3(
+    i % 3 === 0
+      ? 10 * i - (i / 3) * 10
+      : i % 3 === 1
+      ? Math.floor(i / 3) * 20
+      : Math.floor((i - 1) / 3) * 20, //红色
+    i % 3 === 0 ? 0 : 10,
+    i % 3 === 0 ? 0 : i % 3 === 1 ? 10 : -10 //蓝色
+  );
+  // 四元数表示旋转
+  const quaternion = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(i % 3 === 0 ? -Math.PI / 2 : 0, 0, 0)
+  );
+  const scale = new THREE.Vector3(1, 1, 1);
+  let matrix = new THREE.Matrix4();
+  matrix.compose(position, quaternion, scale);
+  // plane.setMatrixAt(i, matrix)  不添加 合并材质
+  planeGeometry.applyMatrix4(matrix);
+  geometry.push(planeGeometry);
+}
+const mergeGeometry = BufferGeometryUtils.mergeBufferGeometries(geometry);
+const plane = new THREE.Mesh(mergeGeometry, planeMaterial);
 plane.receiveShadow = true;
-plane.rotation.x = -Math.PI / 2;
 // 创建立方体叠楼梯的效果
 for (let i = 0; i < 10; i++) {
   const boxGeometry = new THREE.BoxGeometry(1, 1, 0.15);

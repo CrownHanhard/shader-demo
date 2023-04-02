@@ -4,7 +4,7 @@
     </div>
 </template>
 <script setup lang="ts">
-import { ref, Ref, onMounted } from "vue";
+import { ref, Ref, onMounted, reactive } from "vue";
 import gsap from "gsap";
 import * as THREE from "three";
 // 场景
@@ -18,27 +18,32 @@ import axesHelper from "@/three/axesHelper";
 // 导入渲染器
 import renderer from "@/three/render";
 // 导入渲染函数
-import animate from "@/three/animate";
+import animate, { delta } from "@/three/animate";
 import stats from '@/three/stats'
 
 // 初始化调整屏幕
 import "@/three/Init";
 import {
-    capsuleBody,
     capsule,
+    hemisphereLight,
+    fadeToAction,
     lod
 } from '@/three/mesh/meshPlayer'
 import {
     group,
     keyStates,
     createFireworks,
-    _octreeHelper
+    _octreeHelper,
+    playerVelocity,
+    playerDirection,
+    modifyQuick
 } from '@/three/modifyPlayer/player'
 const sceneDiv: Ref = ref();
 //  相机
 scene.add(camera);
-scene.add(_octreeHelper);
-
+// scene.add(_octreeHelper);
+scene.add(hemisphereLight)
+let QuickSpeed: string[] = reactive([])
 onMounted(() => {
     sceneDiv.value.appendChild(renderer.domElement);
     sceneDiv.value.appendChild(stats.domElement);
@@ -49,7 +54,6 @@ onMounted(() => {
     camera.lookAt(capsule.position);
     // controls.target = capsule.position;
     capsule.add(camera);
-    capsule.add(capsuleBody);
 
     scene.add(capsule);
 
@@ -82,7 +86,7 @@ onMounted(() => {
             keyStates.isDown = false;
             if (event.code === "KeyV") {
                 if (!isV.value) {
-                    camera.position.set(0, 3, -2)
+                    camera.position.set(0, .8, 0)
                     isV.value = true
                 } else {
                     camera.position.set(0, 2, -5)
@@ -92,13 +96,57 @@ onMounted(() => {
             if (event.code === "KeyQ") {
                 createFireworks(scene)
             }
+            if (event.code === "KeyT") {
+                fadeToAction('Wave')
+            }
+            if (event.code === "KeyW") {
+                playerVelocity.z = 0
+            }
+            if (event.code === "KeyS") {
+                playerVelocity.z = 0
+            }
+            if (event.code === "KeyA") {
+                playerVelocity.x = 0
+            }
+            if (event.code === "KeyD") {
+                playerVelocity.x = 0
+            }
+            if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+                QuickSpeed.length = 0
+                modifyQuick(false)
+            }
+
+
         },
         false
     );
+
     document.addEventListener("keydown", (event) => {
         if (event.code === "KeyQ") {
             createFireworks(scene)
         }
+        if (event.code === "Space") {
+            fadeToAction('Jump')
+        }
+        if (event.code === 'KeyW') {
+            if (QuickSpeed.indexOf('Shift') === 0) {
+                modifyQuick(true)
+                playerDirection.z = 5;
+                //获取胶囊的正前面方向
+                const capsuleFront = new THREE.Vector3(0, 0, 0);
+                capsule.getWorldDirection(capsuleFront);
+
+                // 计算玩家的速度
+                playerVelocity.add(capsuleFront.multiplyScalar(delta * 10));
+
+            }
+        }
+        if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
+            if (QuickSpeed.indexOf('Shift') === -1) {
+                QuickSpeed.push('Shift')
+            }
+        }
+
     })
     document.addEventListener(
         "mousedown",

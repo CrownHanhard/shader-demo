@@ -2,13 +2,16 @@ import * as THREE from "three";
 import {
   plane,
   planeWall,
+  BoxWater,
   playerCollider,
   capsule,
+  fadeToAction,
 } from "@/three/mesh/meshPlayer";
 import { Octree } from "three/examples/jsm/math/Octree.js";
 import { OctreeHelper } from "three/examples/jsm/helpers/OctreeHelper.js";
 
 import Fireworks from "@/three/createPoint";
+import exp from "constants";
 
 export const keyStates = {
   KeyW: false,
@@ -19,21 +22,11 @@ export const keyStates = {
   isDown: false,
 };
 
-const radianAOB = (
-  A: THREE.Vector3,
-  B: THREE.Vector3,
-  O: THREE.Vector3
-): number => {
-  // dir1、dir2：球面上两个点和球心构成的方向向量
-  const dir1 = A.clone().sub(O).normalize();
-  const dir2 = B.clone().sub(O).normalize();
-  //.dot()计算夹角余弦值
-  const cosAngle = dir1.clone().dot(dir2);
-  const radianAngle = Math.acos(cosAngle); //余弦值转夹角弧度值
-  return radianAngle;
-};
+let isQuick = false;
 export let fireworks: Fireworks[] = [];
-
+export const modifyQuick = (val: boolean) => {
+  isQuick = val;
+};
 export let createFireworks = (scene: THREE.Scene) => {
   let color = `hsl(${Math.floor(Math.random() * 360)},100%,5%)`;
   // 颜色随机生成 位置
@@ -52,7 +45,7 @@ export let createFireworks = (scene: THREE.Scene) => {
   // 去哪？
   let to = new THREE.Vector3(
     toPosition.x,
-    Math.abs(positionY) + capsule.position.clone().y+3,
+    Math.abs(positionY) + capsule.position.clone().y + 3,
     toPosition.z
   );
   let firework = new Fireworks(color, to, from);
@@ -63,22 +56,21 @@ export const group = new THREE.Group();
 // @ts-ignore
 group.add(plane);
 group.add(planeWall);
+group.add(BoxWater);
 // scene.add(group);
 const worldOctree = new Octree();
-
-
 worldOctree.fromGraphNode(group);
 export const _octreeHelper = new OctreeHelper(worldOctree, 0xff0);
 // 设置重力
 const gravity = -9.8;
 // 玩家的速度
-const playerVelocity = new THREE.Vector3(0, 0, 0);
+export const playerVelocity = new THREE.Vector3(0, 0, 0);
 // 方向向量
-const playerDirection = new THREE.Vector3(0, 0, 0);
+export const playerDirection = new THREE.Vector3(0, 0, 0);
 
 // 根据键盘状态更新玩家的速度
 export function controlPlayer(deltaTime: number) {
-  if (keyStates["KeyW"]) {
+  if (keyStates["KeyW"] && !isQuick) {
     playerDirection.z = 5;
     //获取胶囊的正前面方向
     const capsuleFront = new THREE.Vector3(0, 0, 0);
@@ -144,6 +136,18 @@ export function updatePlayer(deltaTime: number) {
   playerCollider.getCenter(capsule.position);
   // 进行碰撞检测
   playerCollisions();
+
+  // 如果有水平的运动 则设置运动的动作
+  if (
+    Math.abs(playerVelocity.x) + Math.abs(playerVelocity.z) > 0.1 &&
+    Math.abs(playerVelocity.x) + Math.abs(playerVelocity.z) <= 3
+  ) {
+    fadeToAction("Walking");
+  } else if (Math.abs(playerVelocity.x) + Math.abs(playerVelocity.z) > 3) {
+    fadeToAction("Running");
+  } else {
+    fadeToAction("Idle");
+  }
 }
 
 export function playerCollisions() {

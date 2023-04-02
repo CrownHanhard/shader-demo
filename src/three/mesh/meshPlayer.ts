@@ -1,6 +1,11 @@
 import * as THREE from "three";
+import gsap from "gsap";
 import { Capsule } from "three/examples/jsm/math/Capsule.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import vertexShader from "@/shader/planeWall/vertex.glsl?raw";
+import fragmentShader from "@/shader/planeWall/fragment.glsl?raw";
 import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils";
+import { PlaneGeometry } from "three";
 // 创建一个人的碰撞体
 const playerCollider = new Capsule(
   new THREE.Vector3(0, 0.35, 0),
@@ -8,12 +13,101 @@ const playerCollider = new Capsule(
   0.35
 );
 
-// 创建一个平面纹理 通过合并循环生成总物体
-const planeMaterial = new THREE.MeshBasicMaterial({
-  color: 0x000000,
-  side: THREE.DoubleSide,
+// 添加半球光源照亮机器人
+export const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1);
+
+// 载入机器人
+// 载入机器人模型
+const loader = new GLTFLoader();
+//  设置动作混合器
+export let mixer: THREE.AnimationMixer;
+let actions: { [key: string]: THREE.AnimationAction } = {};
+// 设置激活动作
+let activeAction: THREE.AnimationAction;
+loader.load("./models/RobotExpressive.glb", (gltf) => {
+  const robot = gltf.scene;
+  robot.scale.set(0.4, 0.4, 0.4);
+  robot.position.set(0, -0.85, 0);
+  capsule.add(robot);
+  mixer = new THREE.AnimationMixer(robot);
+  for (let i = 0; i < gltf.animations.length; i++) {
+    let name = gltf.animations[i].name;
+    actions[name] = mixer.clipAction(gltf.animations[i]);
+
+    if (name !== "Idle" && name !== "Running" && name !== "Walking") {
+      actions[name].clampWhenFinished = true; // 结束自动暂停 保留最后一帧
+      actions[name].loop = THREE.LoopOnce;
+    } else {
+      actions[name].clampWhenFinished = false;
+      actions[name].loop = THREE.LoopRepeat;
+    }
+  }
+  activeAction = actions["Idle"];
+  activeAction.play();
 });
 
+export const fadeToAction = (actionName: string) => {
+  let prevAction = activeAction;
+  activeAction = actions[actionName];
+  if (prevAction != activeAction) {
+    prevAction.fadeOut(0.3);
+    activeAction
+      .reset()
+      .setEffectiveTimeScale(1)
+      .setEffectiveWeight(1)
+      .fadeIn(0.3)
+      .play();
+    mixer.addEventListener("finished", () => {
+      let prevAction = activeAction;
+      activeAction = actions["Idle"];
+      prevAction.fadeOut(0.3);
+      activeAction
+        .reset()
+        .setEffectiveTimeScale(1)
+        .setEffectiveWeight(1)
+        .fadeIn(0.3)
+        .play();
+    });
+  }
+};
+//  创建水平面
+// const BoxWaterGeometry = new THREE.SphereGeometry(200,64,64)
+const BoxWaterGeometry = new THREE.PlaneGeometry(2000, 2000, 64, 64);
+
+// 创建一个平面纹理 通过合并循环生成总物体
+
+const planeWaterMaterial = new THREE.ShaderMaterial({
+  vertexShader: vertexShader,
+  fragmentShader: fragmentShader,
+  transparent: false,
+  side: THREE.DoubleSide,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  depthTest: false,
+  uniforms: {
+    iTime: {
+      value: 0,
+    },
+    iResolution: {
+      value: new THREE.Vector2(1920, 1080),
+    },
+  },
+});
+gsap.to(planeWaterMaterial.uniforms.iTime, {
+  value: 3,
+  duration: 10,
+  repeat: -1,
+  yoyo: true,
+});
+const BoxWater = new THREE.Mesh(BoxWaterGeometry, planeWaterMaterial);
+BoxWater.rotation.x = -Math.PI / 2;
+BoxWater.receiveShadow = true;
+BoxWater.position.set(0, -20, 0);
+const planeMaterial = new THREE.MeshBasicMaterial({
+  transparent: true,
+  side: THREE.DoubleSide,
+  opacity: 0.3,
+});
 const geometry = [];
 for (let i = 0; i < 12; i++) {
   const planeGeometry = new THREE.PlaneGeometry(20, 20, 1, 1);
@@ -23,7 +117,7 @@ for (let i = 0; i < 12; i++) {
       : i % 3 === 1
       ? Math.floor(i / 3) * 20
       : Math.floor((i - 1) / 3) * 20, //红色
-    i % 3 === 0 ? 0 : 10,
+    i % 3 === 0 ? 0 : -10,
     i % 3 === 0 ? 0 : i % 3 === 1 ? 10 : -10 //蓝色
   );
   // 四元数表示旋转
@@ -58,25 +152,7 @@ const planeWallMaterial = new THREE.MeshBasicMaterial({
 const planeWall = new THREE.Mesh(planeWallGeometry, planeWallMaterial);
 planeWall.receiveShadow = true;
 planeWall.position.set(5, 0.25, 5);
-
-// 创建一个平面
-const capsuleBodyGeometry = new THREE.PlaneGeometry(1, 0.5, 1, 1);
-const capsuleBodyMaterial = new THREE.MeshBasicMaterial({
-  color: 0x0000ff,
-  side: THREE.DoubleSide,
-});
-const capsuleBody = new THREE.Mesh(capsuleBodyGeometry, capsuleBodyMaterial);
-capsuleBody.position.set(0, 0.5, 0);
-
-// 创建一个胶囊物体
-const capsuleGeometry = new THREE.CapsuleGeometry(0.35, 1, 32);
-const capsuleMaterial = new THREE.MeshBasicMaterial({
-  color: 0xff0000,
-  side: THREE.DoubleSide,
-});
-const capsule = new THREE.Mesh(capsuleGeometry, capsuleMaterial);
-capsule.position.set(0, 0.85, 0);
-
+const capsule = new THREE.Object3D();
 // 多层次细节展示
 const material = new THREE.MeshBasicMaterial({
   color: 0xff0000,
@@ -94,4 +170,4 @@ let mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
 mesh.visible = false;
 lod.addLevel(mesh, 25);
 lod.position.set(10, 0, 10);
-export { playerCollider, capsuleBody, capsule, plane, planeWall, lod };
+export { playerCollider, capsule, plane, planeWall, lod, BoxWater };

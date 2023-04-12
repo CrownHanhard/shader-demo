@@ -1,6 +1,11 @@
 <template>
-    <div>
+    <div id="container">
         <div class="scene" ref="sceneDiv"></div>
+        <div class="videoBox">
+            <canvas id="myCanvas" width="400" height="400" ref="myCanvas"></canvas>
+            <video id="video" loadeddata width="400" height="400" style="width:400px;height:400px" ref="video"
+                autoplay></video>
+        </div>
     </div>
 </template>
 <script setup lang="ts">
@@ -18,8 +23,10 @@ import axesHelper from "@/three/axesHelper";
 // 导入渲染器
 import renderer from "@/three/render";
 // 导入渲染函数
-import animate, { delta } from "@/three/animate";
+import { animate, delta, initMytack } from "@/three/animate";
 import stats from '@/three/stats'
+import 'tracking'
+import "tracking/build/data/face";
 
 // 初始化调整屏幕
 import "@/three/Init";
@@ -38,13 +45,43 @@ import {
     playerDirection,
     modifyQuick
 } from '@/three/modifyPlayer/player'
+
+// 导入手势库
+// @ts-ignore
+import * as handTrack from "handtrackjs";
+
+//  手势库
+const modelParams = {
+    flipHorizontal: true, // 翻转摄像头
+    maxNumBoxes: 20, // 最大检测数量
+    iouThreshold: 0.5, // 阈值
+    scoreThreshold: 0.6,
+    labelMap: {
+        1: "open",
+        2: "closed",
+        3: "pinch",
+        4: "point",
+        6: "pointtip",
+        7: "pinchtip",
+    },
+    modelType: "ssd320fpnlite",
+};
+
 const sceneDiv: Ref = ref();
 //  相机
 scene.add(camera);
 // scene.add(_octreeHelper);
 scene.add(hemisphereLight)
+// 标识用的画布
+const myCanvas = ref<HTMLCanvasElement | null>(null);
+const video = ref<HTMLVideoElement | null>(null);
+
+
 let QuickSpeed: string[] = reactive([])
-onMounted(() => {
+// initMytack(myCanvas as Ref<HTMLCanvasElement>)
+
+onMounted(async () => {
+    // tracking.track('#video', myTracker, { camera: true })
     sceneDiv.value.appendChild(renderer.domElement);
     sceneDiv.value.appendChild(stats.domElement);
     // controls.update();
@@ -56,7 +93,6 @@ onMounted(() => {
     capsule.add(camera);
 
     scene.add(capsule);
-
     // 根据键盘按下的键来更新键盘的状态
     document.addEventListener(
         "keydown",
@@ -158,12 +194,51 @@ onMounted(() => {
     );
     scene.add(lod)
     animate();
+    // 获取用户媒体,包含视频和音频
+    navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+            video.value!.srcObject = stream // 将捕获的视频流传递给video  放弃window.URL.createObjectURL(stream)的使用
+            // video.value!.play() //  播放视频
+        }).then(res => {
+            handTrack.startVideo(document.getElementById('video') as HTMLVideoElement).then(function (data: { status: boolean }) {
+                if (data.status) {
+                    handTrack.load(modelParams).then((model: any) => {
+                        initMytack(model, myCanvas as Ref<HTMLCanvasElement>, document.getElementById('video') as HTMLVideoElement)
+                    })
+                }
+            });
+        })
 });
 
 </script>
 <style>
+#container {
+    position: relative
+}
+
 .scene {
+    position: absolute;
+    top: 0;
+    left: 0%;
     width: 100vw;
     height: 100vh;
+    z-index: 2;
+}
+
+.videoBox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 400px;
+    height: 400px;
+    z-index: 3;
+
+}
+
+#myCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 </style>

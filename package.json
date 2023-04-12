@@ -11,9 +11,12 @@
   "dependencies": {
     "@types/node": "^18.14.1",
     "@types/three": "^0.149.0",
+    "@types/tracking": "^1.1.30",
     "dat.gui": "^0.7.9",
     "gsap": "^3.11.4",
+    "handtrackjs": "^0.1.5",
     "three": "^0.150.0",
+    "tracking": "^1.1.3",
     "vue": "^3.2.45"
   },
   "devDependencies": {

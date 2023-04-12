@@ -6,6 +6,7 @@ import vertexShader from "@/shader/planeWall/vertex.glsl?raw";
 import fragmentShader from "@/shader/planeWall/fragment.glsl?raw";
 import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils";
 import { PlaneGeometry } from "three";
+
 // 创建一个人的碰撞体
 const playerCollider = new Capsule(
   new THREE.Vector3(0, 0.35, 0),
@@ -34,7 +35,12 @@ loader.load("./models/RobotExpressive.glb", (gltf) => {
     let name = gltf.animations[i].name;
     actions[name] = mixer.clipAction(gltf.animations[i]);
 
-    if (name !== "Idle" && name !== "Running" && name !== "Walking") {
+    if (
+      name !== "Idle" &&
+      name !== "Running" &&
+      name !== "Walking" &&
+      name !== "Jump"
+    ) {
       actions[name].clampWhenFinished = true; // 结束自动暂停 保留最后一帧
       actions[name].loop = THREE.LoopOnce;
     } else {
@@ -170,4 +176,7 @@ let mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
 mesh.visible = false;
 lod.addLevel(mesh, 25);
 lod.position.set(10, 0, 10);
+
+// 视频
+
 export { playerCollider, capsule, plane, planeWall, lod, BoxWater };
